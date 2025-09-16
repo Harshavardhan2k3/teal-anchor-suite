@@ -116,3 +116,9 @@ All colors MUST be HSL.
 html {
   @apply dark;
 }
+
+@layer components {
+  .glass-card {
+    @apply backdrop-blur-sm bg-background/95 border border-border/50 shadow-lg;
+  }
+}
