@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,7 +13,8 @@ import {
   Bell, 
   QrCode,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 
 const navigation = [
@@ -33,6 +35,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,6 +77,16 @@ export default function Layout({ children }: LayoutProps) {
               );
             })}
           </nav>
+          <div className="mt-auto p-4 border-t border-border">
+            <Button
+              onClick={() => signOut()}
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-accent"
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -102,6 +115,16 @@ export default function Layout({ children }: LayoutProps) {
             );
           })}
         </nav>
+        <div className="mt-auto p-4 border-t border-border">
+          <Button
+            onClick={() => signOut()}
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-accent"
+          >
+            <LogOut className="h-4 w-4 mr-3" />
+            Sign Out
+          </Button>
+        </div>
       </div>
 
       {/* Main content */}
