@@ -14,6 +14,7 @@ interface PayrollRecord {
   special_pay: number;
   total_pay: number;
   pay_period: string;
+  total_hours: number;
   user_profiles?: {
     full_name: string;
   };
@@ -56,41 +57,65 @@ export default function Payroll() {
     return { startDate, endDate };
   };
 
+  const calculateTotalHours = (loginTime: string, logoutTime: string) => {
+    if (!loginTime || !logoutTime) return 0;
+    
+    const login = new Date(loginTime);
+    const logout = new Date(logoutTime);
+    const diffMs = logout.getTime() - login.getTime();
+    const hours = diffMs / (1000 * 60 * 60);
+    
+    return Math.max(0, Math.round(hours * 100) / 100); // Round to 2 decimal places
+  };
+
   const fetchPayrollRecords = async () => {
     try {
-      // Mock payroll data since we don't have a payroll table yet
-      const mockData: PayrollRecord[] = [
-        {
-          id: '1',
-          emp_id: 'EMP001',
-          fixed_pay: 5000,
-          special_pay: 500,
-          total_pay: 5500,
-          pay_period: '2024-01-01',
-          user_profiles: { full_name: 'John Doe' }
-        },
-        {
-          id: '2',
-          emp_id: 'EMP002',
-          fixed_pay: 4500,
-          special_pay: 300,
-          total_pay: 4800,
-          pay_period: '2024-01-01',
-          user_profiles: { full_name: 'Jane Smith' }
-        },
-        {
-          id: '3',
-          emp_id: 'EMP003',
-          fixed_pay: 6000,
-          special_pay: 800,
-          total_pay: 6800,
-          pay_period: '2024-01-01',
-          user_profiles: { full_name: 'Mike Johnson' }
-        }
-      ];
+      const { startDate, endDate } = getDateRange();
+      
+      // Fetch all employees
+      const { data: employees, error: empError } = await supabase
+        .from('user_profiles')
+        .select('emp_id, full_name');
 
-      setPayrollRecords(mockData);
-      const total = mockData.reduce((sum, record) => sum + record.total_pay, 0);
+      if (empError) throw empError;
+
+      // Fetch attendance records for the date range
+      const { data: attendanceRecords, error: attError } = await supabase
+        .from('attendance_records')
+        .select('emp_id, login_time, logout_time, created_at')
+        .gte('created_at', startDate + 'T00:00:00.000Z')
+        .lte('created_at', endDate + 'T23:59:59.999Z');
+
+      if (attError) throw attError;
+
+      // Calculate total hours for each employee
+      const payrollData: PayrollRecord[] = employees?.map(employee => {
+        const empAttendance = attendanceRecords?.filter(record => record.emp_id === employee.emp_id) || [];
+        
+        const totalHours = empAttendance.reduce((sum, record) => {
+          return sum + calculateTotalHours(record.login_time, record.logout_time);
+        }, 0);
+
+        // Mock salary calculation (you can adjust this based on your business logic)
+        const hourlyRate = 25; // $25 per hour (this could come from a salary table)
+        const fixed_pay = Math.round(totalHours * hourlyRate);
+        const special_pay = Math.round(fixed_pay * 0.1); // 10% bonus
+        const total_pay = fixed_pay + special_pay;
+
+        return {
+          id: employee.emp_id,
+          emp_id: employee.emp_id,
+          fixed_pay,
+          special_pay,
+          total_pay,
+          pay_period: startDate,
+          total_hours: Math.round(totalHours * 100) / 100,
+          user_profiles: { full_name: employee.full_name }
+        };
+      }) || [];
+
+      setPayrollRecords(payrollData);
+      const total = payrollData.reduce((sum, record) => sum + record.total_pay, 0);
       setTotalPayroll(total);
     } catch (error) {
       console.error('Error fetching payroll records:', error);
@@ -187,6 +212,7 @@ export default function Payroll() {
                   <TableRow className="border-border">
                     <TableHead className="text-card-foreground">Employee ID</TableHead>
                     <TableHead className="text-card-foreground">Name</TableHead>
+                    <TableHead className="text-card-foreground">Total Hours</TableHead>
                     <TableHead className="text-card-foreground">Fixed Pay</TableHead>
                     <TableHead className="text-card-foreground">Special Pay</TableHead>
                     <TableHead className="text-card-foreground">Total Pay</TableHead>
@@ -196,7 +222,7 @@ export default function Payroll() {
                 <TableBody>
                   {payrollRecords.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No payroll records found for this period
                       </TableCell>
                     </TableRow>
@@ -205,6 +231,9 @@ export default function Payroll() {
                       <TableRow key={record.id} className="border-border">
                         <TableCell className="text-card-foreground">{record.emp_id}</TableCell>
                         <TableCell className="text-card-foreground">{record.user_profiles?.full_name || 'Unknown'}</TableCell>
+                        <TableCell className="text-card-foreground">
+                          <span className="font-semibold text-primary">{record.total_hours}h</span>
+                        </TableCell>
                         <TableCell className="text-card-foreground">{formatCurrency(record.fixed_pay)}</TableCell>
                         <TableCell className="text-card-foreground">{formatCurrency(record.special_pay)}</TableCell>
                         <TableCell className="text-card-foreground font-semibold">{formatCurrency(record.total_pay)}</TableCell>
