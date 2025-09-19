@@ -56,8 +56,7 @@ export default function Employees() {
         .insert([{
           emp_id: formData.emp_id,
           full_name: formData.full_name,
-          role: formData.role,
-          password_hash: 'default_hash' // In real app, this should be properly hashed
+          role: formData.role
         }]);
 
       if (error) throw error;

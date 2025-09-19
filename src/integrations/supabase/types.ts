@@ -154,7 +154,6 @@ export type Database = {
           emp_id: string
           full_name: string
           id: string
-          password_hash: string
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
@@ -162,7 +161,6 @@ export type Database = {
           emp_id: string
           full_name: string
           id?: string
-          password_hash: string
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
@@ -170,7 +168,6 @@ export type Database = {
           emp_id?: string
           full_name?: string
           id?: string
-          password_hash?: string
           role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
